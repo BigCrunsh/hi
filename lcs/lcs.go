@@ -1,6 +1,8 @@
 package lcs
 
-import ()
+import (
+	"sync"
+)
 
 type eqFunc func(int, int) bool
 
@@ -101,4 +103,73 @@ func backtrackIJ(C [][]int, s1, s2 []int, equal eqFunc, i, j int) set {
 	}
 
 	return res
+}
+
+//
+// ------------------
+//
+
+type seqFun func(x, y []int, equal eqFunc, minLength, maxError int) [][]int
+
+// TODO needs to be called twice and results joined
+func GetSeqs(x, y []int, equal eqFunc, minLength, maxError int) [][]int {
+	result := [][]int{}
+
+	for xPos := 0; xPos < len(x); xPos++ {
+		m := match(x, y, equal, minLength, maxError, xPos)
+		if len(m) > 0 {
+			result = append(result, m)
+		}
+	}
+
+	return result
+}
+
+// TODO needs to be called twice and results joined
+func GetSeqsConcurrently(x, y []int, equal eqFunc, minLength, maxError int) [][]int {
+	result := make(chan []int)
+
+	var wg sync.WaitGroup
+	for xPos := 0; xPos < len(x); xPos++ {
+		wg.Add(1)
+		go func(result chan []int, x, y []int, equal eqFunc, minLength, maxError, xPos int) {
+			defer wg.Done()
+
+			m := match(x, y, equal, minLength, maxError, xPos)
+			if len(m) > 0 {
+				result <- m
+			}
+		}(result, x, y, equal, minLength, maxError, xPos)
+	}
+
+	go func() {
+		wg.Wait()
+		close(result)
+	}()
+
+	arr := [][]int{}
+	for res := range result {
+		arr = append(arr, res)
+	}
+
+	return arr
+}
+
+func match(x, y []int, equal eqFunc, minLength, maxError, xPos int) []int {
+	buffer, match, matchErrors := []int{}, []int{},  0
+
+	for yPos := 0 ; (yPos < len(y)) && (xPos < len(x)) && (matchErrors <= maxError) ; yPos++ {
+		if equal(x[xPos], y[yPos]) {
+			buffer = append(buffer, x[xPos])
+			xPos++
+		} else {
+			matchErrors++
+		}
+
+		if matchErrors <= maxError && len(buffer) >= minLength {
+			match = buffer
+		}
+	}
+
+	return match
 }
