@@ -148,6 +148,7 @@ func singleMatch(x, y []int, equal eqFunc, minLength, maxError, xPos, yPos int) 
 	return match
 }
 
+// Find all subsequences
 func GetSeqs(x, y []int, equal eqFunc, minLength, maxError int) []subsequence {
 	result := []subsequence{}
 
@@ -167,6 +168,7 @@ func GetSeqs(x, y []int, equal eqFunc, minLength, maxError int) []subsequence {
 	return result
 }
 
+// Find all subsequences by spawning a go routine for each item in x
 func GetSeqsConcurrently(x, y []int, equal eqFunc, minLength, maxError int) []subsequence {
 	result := make(chan *subsequence)
 
@@ -202,3 +204,48 @@ func GetSeqsConcurrently(x, y []int, equal eqFunc, minLength, maxError int) []su
 	return subseqs
 }
 
+// Go in with one sequence, retrieve the rest from an index including positions.
+func GetSeqsFromIndex(x []int, equal eqFunc, minLength, maxError int) []subsequence {
+	result := []subsequence{}
+
+	for xPos := 0; xPos < len(x); xPos++ {
+		allYs := indexLookup(x[xPos])
+
+		for _, y := range(allYs) {
+			m := singleMatch(x, y.Seq, equal, minLength, maxError, xPos, y.Pos)
+			if m != nil {
+				result = append(result, *m)
+			}
+
+			// call mirrored
+			m = singleMatch(y.Seq, x, equal, minLength, maxError, y.Pos, xPos)
+			if m != nil {
+				result = append(result, *m)
+			}
+		}
+	}
+
+	return result
+}
+
+type lookupResult struct {
+	Seq []int
+	Pos int
+}
+
+var sequences [][]int  // data in the pseudo index
+
+// Replace this in production by a large and efficient index lookup.
+// FLAW: this assumes that it is possible to do a lookup, which means
+// that the equal function is just '==' after some normalization.
+func indexLookup(itemValue int) []lookupResult {
+	result := []lookupResult{}
+	for _, seq := range(sequences) {
+		for i, v := range(seq) {
+			if v == itemValue {
+				result = append(result, lookupResult{seq, i})
+			}
+		}
+	}
+	return result
+}

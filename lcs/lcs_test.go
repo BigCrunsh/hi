@@ -39,7 +39,6 @@ func TestGetSeqs(t *testing.T) {
 		}},
 	}
 	execTest(t, GetSeqs, x, y, 3, 1, expected)
-	execTest(t, GetSeqsConcurrently, x, y, 3, 1, expected)
 }
 
 func execTest(t *testing.T, fun extractSubSeqs, x, y []int, minLength, maxErrors int, expected []subsequence) {
