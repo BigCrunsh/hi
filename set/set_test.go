@@ -39,6 +39,32 @@ func TestCardinality(t *testing.T) {
 	}
 }
 
+func TestUnion(t *testing.T) {
+	s1, s2, expected := NewSet(), NewSet(), NewSet()
+
+	for _, i := range []int{2, 1, 3, 5} {
+		el1 := new(intElement)
+		el1.data = i
+		s1.Add(el1)
+	}
+
+	for _, i := range []int{1, 2, 3, 3, 4} {
+		el2 := new(intElement)
+		el2.data = i
+		s2.Add(el2)
+	}
+
+	for _, i := range []int{1, 2, 3, 4, 5} {
+		el3 := new(intElement)
+		el3.data = i
+		expected.Add(el3)
+	}
+
+	if s1.Union(s2); !expected.Equals(s1) {
+		t.Fatalf("union: expected %v but got %v", expected, s1)
+	}
+}
+
 func TestEquals(t *testing.T) {
 	data1 := []int{2, 1, 3}
 	data2 := []int{1, 2, 3, 3, 4}

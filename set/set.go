@@ -2,7 +2,6 @@ package set
 
 import (
 	"fmt"
-	"reflect"
 )
 
 type SetElement interface {
@@ -29,6 +28,12 @@ func (s *Set) Add(a SetElement) bool {
 	return true
 }
 
+func (s *Set) Union(that Set) {
+	for _, v := range that.data {
+		(*s).Add(v)
+	}
+}
+
 func (s *Set) Cardinality() int {
 	return len((*s).data)
 }
@@ -40,7 +45,17 @@ func (s *Set) Contains(a SetElement) bool {
 
 // TODO(cs): replace DeepEqual by comparisons of SetElements
 func (s *Set) Equals(that Set) bool {
-	return reflect.DeepEqual(*s, that)
+	if len((*s).data) != len(that.data) {
+		return false
+	}
+
+	for _, v := range (*s).data {
+		if !that.Contains(v) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (s *Set) String() string {
