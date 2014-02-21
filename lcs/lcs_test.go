@@ -30,62 +30,38 @@ func TestLCS(t *testing.T) {
 func TestGetSeqs(t *testing.T) {
 	x := []int{1, 1, 2, 3, 5, 8, 13}
 	y := []int{1, 2, 3, 4, 5, 6, 7}
-	expected := [][]int{
-		[]int{1, 2, 3, 5},
+	expected := []subsequence{
+		subsequence{ []matchedItem{
+			matchedItem{1, 0, 0},
+			matchedItem{2, 2, 1},
+			matchedItem{3, 3, 2},
+			matchedItem{5, 4, 4},
+		}},
 	}
 	execTest(t, GetSeqs, x, y, 3, 1, expected)
-}
-
-// FIXME!!! this test fails currently; remove prefix 'x' to run
-func xTestGetSeqsFlipped(t *testing.T) {
-	x := []int{1, 2, 3, 4, 5, 6, 7}
-	y := []int{1, 1, 2, 3, 5, 8, 13}
-	expected := [][]int{
-		[]int{1, 2, 3, 5},
-	}
-	execTest(t, GetSeqs, x, y, 3, 1, expected)
-}
-
-func TestGetSeqsConcurrently(t *testing.T) {
-	x := []int{1, 1, 2, 3, 5, 8, 13}
-	y := []int{1, 2, 3, 4, 5, 6, 7}
-	expected := [][]int{
-		[]int{1, 2, 3, 5},
-	}
 	execTest(t, GetSeqsConcurrently, x, y, 3, 1, expected)
 }
 
-// FIXME!!! this test fails currently; remove prefix 'x' to run
-func xTestGetSeqsConcurrentlyFlipped(t *testing.T) {
-	x := []int{1, 2, 3, 4, 5, 6, 7}
-	y := []int{1, 1, 2, 3, 5, 8, 13}
-	expected := [][]int{
-		[]int{1, 2, 3, 5},
-	}
-	execTest(t, GetSeqsConcurrently, x, y, 3, 1, expected)
-}
-
-// ---
-
-func execTest(t *testing.T, fun seqFun, x, y []int, minLength, maxErrors int, expected [][]int) {
+func execTest(t *testing.T, fun extractSubSeqs, x, y []int, minLength, maxErrors int, expected []subsequence) {
 	results := fun(x, y, equal, minLength, maxErrors)
 
 	if len(expected) != len(results) {
+		fmt.Println("expected:", expected, "results:", results)
 		t.Fatalf("Number of subsequences incorrect; expected %d, got %d", len(expected), len(results))
 	}
 
 	for i, result := range results {
 		exp := expected[i] 
 
-		if len(exp) != len(result) {
+		if len(exp.Items) != len(result.Items) {
 			fmt.Println("x:", x, "y:", y, "result:", result)
-			t.Fatalf("Number of items in subsequence incorrect; expected %d, got %d", len(exp), len(result))
+			t.Fatalf("Number of items in subsequence incorrect; expected %d, got %d", len(exp.Items), len(result.Items))
 		}
 
-		for j, item := range result {
-			if item != exp[j] {
+		for j, item := range result.Items {
+			if item.Value != exp.Items[j].Value {
 				fmt.Println("x:", x, "y:", y, "result:", result)
-				t.Fatalf("int at index %d was not %d but was %d", i, exp[j], item)
+				t.Fatalf("value at index %d was not %d but was %d", i, exp.Items[j], item)
 			}
 		}
 	}

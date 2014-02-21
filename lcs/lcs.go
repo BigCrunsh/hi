@@ -109,34 +109,81 @@ func backtrackIJ(C [][]int, s1, s2 []int, equal eqFunc, i, j int) set {
 // ------------------
 //
 
-type seqFun func(x, y []int, equal eqFunc, minLength, maxError int) [][]int
+type subsequence struct {
+	Items []matchedItem
+}
 
-// TODO needs to be called twice and results joined
-func GetSeqs(x, y []int, equal eqFunc, minLength, maxError int) [][]int {
-	result := [][]int{}
+type matchedItem struct {
+	Value     int
+	PositionX int
+	PositionY int
+}
+
+type extractSubSeqs func(x, y []int, equal eqFunc, minLength, maxError int) []subsequence
+
+// Find one subsequence starting at given positions.
+// Advance the position for x on a match and for y always.
+// Break when maxError is reached and only return a
+// subsequence if the match is longer than minLength. 
+func singleMatch(x, y []int, equal eqFunc, minLength, maxError, xPos, yPos int) *subsequence {
+	var match *subsequence
+
+	var buffer []matchedItem
+	matchErrors := 0
+	for (xPos < len(x)) && (yPos < len(y)) && (matchErrors <= maxError) {
+		if equal(x[xPos], y[yPos]) {
+			buffer = append(buffer, matchedItem{x[xPos], xPos, yPos})
+			xPos++
+		} else {
+			matchErrors++
+		}
+
+		if matchErrors <= maxError && len(buffer) >= minLength {
+			match = &subsequence{buffer}
+		}
+
+		yPos++ 
+	}
+
+	return match
+}
+
+func GetSeqs(x, y []int, equal eqFunc, minLength, maxError int) []subsequence {
+	result := []subsequence{}
 
 	for xPos := 0; xPos < len(x); xPos++ {
-		m := match(x, y, equal, minLength, maxError, xPos)
-		if len(m) > 0 {
-			result = append(result, m)
+		m := singleMatch(x, y, equal, minLength, maxError, xPos, 0)
+		if m != nil {
+			result = append(result, *m)
+		}
+
+		// call mirrored
+		m = singleMatch(y, x, equal, minLength, maxError, 0, xPos)
+		if m != nil {
+			result = append(result, *m)
 		}
 	}
 
 	return result
 }
 
-// TODO needs to be called twice and results joined
-func GetSeqsConcurrently(x, y []int, equal eqFunc, minLength, maxError int) [][]int {
-	result := make(chan []int)
+func GetSeqsConcurrently(x, y []int, equal eqFunc, minLength, maxError int) []subsequence {
+	result := make(chan *subsequence)
 
 	var wg sync.WaitGroup
 	for xPos := 0; xPos < len(x); xPos++ {
 		wg.Add(1)
-		go func(result chan []int, x, y []int, equal eqFunc, minLength, maxError, xPos int) {
+		go func(result chan *subsequence, x, y []int, equal eqFunc, minLength, maxError, xPos int) {
 			defer wg.Done()
 
-			m := match(x, y, equal, minLength, maxError, xPos)
-			if len(m) > 0 {
+			m := singleMatch(x, y, equal, minLength, maxError, xPos, 0)
+			if m != nil {
+				result <- m
+			}
+
+			// call mirrored
+			m = singleMatch(y, x, equal, minLength, maxError, 0, xPos)
+			if m != nil {
 				result <- m
 			}
 		}(result, x, y, equal, minLength, maxError, xPos)
@@ -147,29 +194,11 @@ func GetSeqsConcurrently(x, y []int, equal eqFunc, minLength, maxError int) [][]
 		close(result)
 	}()
 
-	arr := [][]int{}
+	subseqs := []subsequence{}
 	for res := range result {
-		arr = append(arr, res)
+		subseqs = append(subseqs, *res)
 	}
 
-	return arr
+	return subseqs
 }
 
-func match(x, y []int, equal eqFunc, minLength, maxError, xPos int) []int {
-	buffer, match, matchErrors := []int{}, []int{},  0
-
-	for yPos := 0 ; (yPos < len(y)) && (xPos < len(x)) && (matchErrors <= maxError) ; yPos++ {
-		if equal(x[xPos], y[yPos]) {
-			buffer = append(buffer, x[xPos])
-			xPos++
-		} else {
-			matchErrors++
-		}
-
-		if matchErrors <= maxError && len(buffer) >= minLength {
-			match = buffer
-		}
-	}
-
-	return match
-}
