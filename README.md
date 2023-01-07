@@ -4,4 +4,7 @@
 
 This is a place for small experiments and excercises. Currently:
 
-- Play around with longest common subsequences (in [go](https://golang.org))
+- analysis: contains notebook answering random questions
+- projects:
+	- Play around with longest common subsequences (in [go](https://golang.org))
+	- notebook extraction for better readability and testatibility
